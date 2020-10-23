@@ -4,6 +4,7 @@ module Spree::ProductDecorator
       callbacks: :async,
       word_start: [:name],
       settings: { number_of_replicas: 0 },
+      index_prefix: ENV['SITE_NAME'],
       merge_mappings: true,
       mappings: {
         properties: {
