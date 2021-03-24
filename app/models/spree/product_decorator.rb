@@ -62,63 +62,92 @@ module Spree::ProductDecorator
         price: { not: nil },
       }
     end
+
+    # Searchkick can't be reinitialized, this method allow to change options without it
+    # ex add_searchkick_option { settings: { "index.mapping.total_fields.limit": 2000 } }
+    def base.add_searchkick_option(option)
+      base.class_variable_set(:@@searchkick_options, base.searchkick_options.deep_merge(option))
+    end
   end
 
   def search_data
-    all_taxons = taxon_and_ancestors
-    filtered_option_types = option_types.filterable.pluck(:id, :name)
+    all_variants = variants_including_master.pluck(:id, :sku)
+
+    all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
+
     json = {
       id: id,
       name: name,
+      slug: slug,
       description: description,
       active: available?,
+      in_stock: in_stock?,
       created_at: created_at,
       updated_at: updated_at,
       price: price,
       currency: currency,
       conversions: orders.complete.count,
-      taxon_ids: all_taxons.map(&:id),
-      taxon_names: all_taxons.map(&:name),
-      option_type_ids: filtered_option_types.map(&:first),
-      option_type_names: filtered_option_types.map(&:last),
-      option_value_ids: variants.map { |v| v.option_value_ids }.flatten.compact.uniq,
-      skus: variants_including_master.pluck(:sku),
-      properties: properties.filterable.map { |prop| { id: prop.id, name: prop.name, value: property(prop.name) } }
+      taxon_ids: all_taxons.map(&:first),
+      taxon_names: all_taxons.map(&:last),
+      skus: all_variants.map(&:last),
+      total_on_hand: total_on_hand
     }
 
-    loaded(:product_properties, :property).each do |prod_prop|
-      json.merge!(Hash[prod_prop.property.name.downcase, prod_prop.value])
-    end
-
-    option_types.each do |option_type|
-      json.merge!(
-        Hash[
-          option_type.name.downcase,
-          variants.map { |v| v.option_values.find_by(option_type: option_type)&.name }.compact.uniq
-        ]
-      )
-    end
-
-    loaded(:taxons, :taxonomy).group_by(&:taxonomy).map do |taxonomy, taxons|
-      json.merge!(Hash["#{taxonomy.name.downcase}_ids", taxon_by_taxonomy(taxonomy.id).map(&:id)])
-    end
-
+    json.merge!(option_types_for_es_index(all_variants))
+    json.merge!(properties_for_es_index)
     json.merge!(index_data)
+
+    json
+  end
+
+  def option_types_for_es_index(all_variants)
+    filterable_option_types = option_types.filterable.pluck(:id, :name)
+    option_value_ids = ::Spree::OptionValueVariant.where(variant_id: all_variants.map(&:first)).pluck(:option_value_id).uniq
+    option_values = ::Spree::OptionValue.where(
+      id: option_value_ids, 
+      option_type_id: filterable_option_types.map(&:first)
+    ).pluck(:option_type_id, :name)
+
+    json = {
+      option_type_ids: filterable_option_types.map(&:first),
+      option_type_names: filterable_option_types.map(&:last),
+      option_value_ids: option_value_ids
+    }
+
+    filterable_option_types.each do |option_type|
+      values = option_values.find_all { |ov| ov.first == option_type.first }.map(&:last).uniq.compact.each(&:downcase)
+
+      json.merge!(Hash[option_type.last.downcase, values]) if values.present?
+    end
+
+    json
+  end
+
+  def properties_for_es_index
+    filterable_properties = properties.filterable.pluck(:id, :name)
+    properties_values = product_properties.where(property_id: filterable_properties.map(&:first)).pluck(:property_id, :value)
+
+    filterable_properties = filterable_properties.map do |prop|
+      {
+        id: prop.first,
+        name: prop.last,
+        value: properties_values.find { |pv| pv.first == prop.first }&.last
+      }
+    end
+
+    json = { property_ids: filterable_properties.map { |p| p[:id] } }
+    json.merge!(property_names: filterable_properties.map { |p| p[:name] })
+    json.merge!(properties: filterable_properties)
+
+    filterable_properties.each do |prop|
+      json.merge!(Hash[prop[:name].downcase, prop[:value].downcase]) if prop[:value].present?
+    end
 
     json
   end
 
   def index_data
     {}
-  end
-
-  def taxon_by_taxonomy(taxonomy_id)
-    taxons.joins(:taxonomy).where(spree_taxonomies: { id: taxonomy_id })
-  end
-
-  def loaded(prop, incl)
-    relation = send(prop)
-    relation.loaded? ? relation : relation.includes(incl)
   end
 end
 

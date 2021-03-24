@@ -19,9 +19,9 @@ Installation
 Add searchkick and spree_searchkick to your Gemfile:
 
 ```ruby
+
 gem 'searchkick'
 gem 'spree_searchkick', github: 'FG-IT/spree_searchkick/spree_searchkick'
-```
 
 Bundle your dependencies and run the installation generator:
 
