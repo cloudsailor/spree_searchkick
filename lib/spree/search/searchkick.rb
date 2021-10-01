@@ -1,16 +1,16 @@
 module Spree
   module Search
     class Searchkick < Spree::Core::Search::Base
-      def retrieve_products(**args)
-        @products =  defined?(args) ? base_elasticsearch(args) : base_elasticsearch
+      def retrieve_products(args=nil)
+        @products = (args.is_a? Hash) ? base_elasticsearch(args) : base_elasticsearch
       end
 
-      def base_elasticsearch(**args)
+      def base_elasticsearch(args=nil)
         curr_page = page || 1
         Spree::Product.search(
           keyword_query,
           fields: Spree::Product.search_fields,
-          where: defined?(args) ? where_query(**args) : where_query,
+          where: (args.is_a? Hash) ? where_query(args) : where_query,
           aggs: aggregations,
           smart_aggs: true,
           order: sorted,
@@ -29,14 +29,13 @@ module Spree
         )
       end
 
-      def where_query(**args)
+      def where_query(args=nil)
         where_query = {
           active: true,
           currency: current_currency,
           price: { not: nil },
         }
-
-        if defined?(args)
+        if args.is_a? Hash
           where_query = where_query.merge(args)
         end
         where_query[:taxon_ids] = taxon.id if taxon
