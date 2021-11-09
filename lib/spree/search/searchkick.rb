@@ -2,8 +2,6 @@ module Spree
   module Search
     class Searchkick < Spree::Core::Search::Base
 
-      require 'date'
-
       def retrieve_orders(args={})
         @order_args = {:approver_id => {_not: nil}}
         params_before = {
