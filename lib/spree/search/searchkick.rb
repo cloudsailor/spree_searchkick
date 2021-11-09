@@ -44,8 +44,6 @@ module Spree
           end
         end
 
-        Rails.logger.info "================="
-        Rails.logger.info @order_args
         @orders = order_base_elasticsearch(@order_args)
 
       end
