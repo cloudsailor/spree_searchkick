@@ -1,5 +1,4 @@
 module Spree::Admin::OrdersControllerDecorator
-  require 'date'
   def index
     params[:q] ||= {}
     params[:q][:completed_at_not_null] ||= '1' if Spree::Config[:show_only_complete_orders_by_default]
