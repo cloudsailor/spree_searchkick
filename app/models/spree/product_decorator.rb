@@ -34,6 +34,27 @@ module Spree::ProductDecorator
       [:name]
     end
 
+    def base.filter_fields
+      [:price, :brand, :in_stock, :conversions, :has_image, :total_on_hand, :purchasable, :taxon_ids]
+    end
+
+    def base.replace_indice
+      ::Spree::Product.searchkick_index.replace_indice
+
+      begin
+        ::Spree::Product.includes(:representation).find_in_batches.each do |batch|
+          batch.each do |product|
+            product.reindex(nil, mode: :inline)
+          end
+        end
+      rescue ActiveRecord::ActiveRecordError => e
+        ActiveRecord::Base.connection.reconnect!
+        sleep 3
+
+        retry
+      end
+    end
+
     def base.autocomplete(keywords)
       if keywords
         Spree::Product.search(
@@ -59,7 +80,7 @@ module Spree::ProductDecorator
     def base.search_where
       {
         active: true,
-        price: { not: nil },
+        price: { gt: 0 },
       }
     end
 
@@ -71,31 +92,81 @@ module Spree::ProductDecorator
   end
 
   def search_data
-    all_variants = variants_including_master.pluck(:id, :sku)
+    if defined?(::Spree::Representation)
+      json = search_data_representable
+    else
+      all_variants = variants_including_master.pluck(:id, :sku)
 
-    all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
+      all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
 
+      json = {
+        id: id,
+        name: name,
+        slug: slug,
+        description: description,
+        active: available?,
+        in_stock: in_stock?,
+        created_at: created_at,
+        updated_at: updated_at,
+        price: price,
+        currency: currency,
+        conversions: orders.complete.count,
+        taxon_ids: all_taxons.map(&:first),
+        taxon_names: all_taxons.map(&:last),
+        skus: all_variants.map(&:last),
+        total_on_hand: total_on_hand,
+        has_image: images.count > 0,
+        purchasable: purchasable?
+      }
+
+      json.merge!(option_types_for_es_index(all_variants))
+      json.merge!(properties_for_es_index)
+    end
+
+    json.merge!(index_data)
+
+    json
+  end
+
+  def search_data_representable
+    taxons = {}
+    presenter[:taxons].each do |t_path|
+      t_path.each do |taxon|
+        unless taxons.has_key?(taxon[:id])
+          taxons[taxon[:id]] = taxon
+        end
+      end
+    end
+    properties = presenter[:properties]&.select {|prop| !prop[:value].blank? }
+    if properties.nil?
+      properties = []
+    end
     json = {
-      id: id,
-      name: name,
-      slug: slug,
-      description: description,
-      active: available?,
-      in_stock: in_stock?,
-      created_at: created_at,
-      updated_at: updated_at,
-      price: price,
-      currency: currency,
-      conversions: orders.complete.count,
-      taxon_ids: all_taxons.map(&:first),
-      taxon_names: all_taxons.map(&:last),
-      skus: all_variants.map(&:last),
-      total_on_hand: total_on_hand
+      id: presenter[:id],
+      name: presenter[:name],
+      slug: presenter[:slug],
+      description: presenter[:description],
+      active: presenter[:available],
+      in_stock: presenter[:in_stock],
+      created_at: presenter[:created_at],
+      updated_at: presenter[:updated_at],
+      price: presenter[:price].blank? ? 0 : presenter[:price].to_f.round(2),
+      currency: presenter[:currency],
+      conversions: presenter[:conversions],
+      taxon_ids: taxons.values.map {|t| t[:id] },
+      taxon_names: taxons.values.map {|t| t[:name] },
+      skus: presenter[:variants].map {|v| v[:sku] },
+      total_on_hand: presenter[:total_on_hand],
+      has_image: presenter[:images].blank? ? false : true,
+      purchasable: presenter[:purchasable],
+      property_ids: properties.map {|prop| prop[:id] },
+      property_names: properties.map {|prop| prop[:name] },
+      properties: properties.map {|prop| { id: prop[:id], name: prop[:name], value: prop[:value] } }
     }
 
-    json.merge!(option_types_for_es_index(all_variants))
-    json.merge!(properties_for_es_index)
-    json.merge!(index_data)
+    properties.each do |prop|
+      json.merge!(Hash[prop[:name].downcase, prop[:value].downcase])
+    end
 
     json
   end
