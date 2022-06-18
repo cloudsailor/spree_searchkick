@@ -16,13 +16,13 @@ module SpreeSearchkick
         Rails.configuration.cache_classes ? require(c) : load(c)
       end
 
-      if SpreeSearchkick::Engine.frontend_available?
+      if ::SpreeSearchkick::Engine.frontend_available?
         Dir.glob(File.join(File.dirname(__FILE__), '../../app/controllers/**/*_decorator*.rb')) do |c|
           Rails.configuration.cache_classes ? require(c) : load(c)
         end
       end
 
-      Spree::Config.searcher_class = Spree::Search::Searchkick
+      ::Spree::Config.searcher_class = ::Spree::Search::Searchkick
     end
 
     config.to_prepare &method(:activate).to_proc
