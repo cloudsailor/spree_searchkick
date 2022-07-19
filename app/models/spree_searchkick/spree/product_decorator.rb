@@ -28,6 +28,10 @@ module SpreeSearchkick
           )
         }
 
+        base.skip_callback :commit, :after, :reindex, raise: false
+        base.after_save :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        base.after_destroy :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+
         def base.autocomplete_fields
           [:name]
         end
