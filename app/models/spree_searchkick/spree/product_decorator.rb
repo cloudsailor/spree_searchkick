@@ -2,6 +2,8 @@ module SpreeSearchkick
   module Spree
     module ProductDecorator
       def self.prepended(base)
+        base.has_many :inventories, class_name: 'SpreeSearchkick::Spree::Inventory', dependent: :destroy
+
         base.searchkick(
           callbacks: :async,
           word_start: [:name],
@@ -41,7 +43,7 @@ module SpreeSearchkick
         end
 
         def base.filter_fields
-          [:price, :brand, :in_stock, :conversions, :has_image, :total_on_hand, :purchasable, :taxon_ids]
+          [:brand, :taxon_ids, :isins, :has_image, :property_ids, :option_type_ids, :option_value_ids, :shipping_category_ids, :price]
         end
 
         def base.replace_indice
@@ -85,7 +87,6 @@ module SpreeSearchkick
 
         def base.search_where
           {
-            active: true,
             price: { gt: 0 },
           }
         end
@@ -101,28 +102,36 @@ module SpreeSearchkick
         if defined?(::Spree::Representation)
           json = search_data_representable
         else
-          all_variants = variants_including_master.pluck(:id, :sku)
+          all_variants = variants_including_master.pluck(:id, :sku, :isin, :shipping_category_id)
 
           all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
+
+          isins = []
+          all_variants.each {|v| isins << v.isin unless v.isin.blank? }
+          isins.uniq!
+
+          sellable_variants = []
+          all_variants.each {|v| sellable_variants << v if v.available? && v.purchasable? && v.price > 0 }
+
+          shipping_category_ids = []
+          sellable_variants.each {|v| shipping_category_ids << v.shipping_category_id if v.shipping_category_id.present? }
+          shipping_category_ids.uniq!
+
+          price = 0
+          sellable_variants.each {|v| price = v.price if v.price < price || price == 0 }
 
           json = {
             id: id,
             name: name,
             slug: slug,
-            description: description,
-            active: available?,
-            in_stock: in_stock?,
             created_at: created_at,
             updated_at: updated_at,
-            price: price,
-            currency: currency,
-            conversions: orders.complete.count,
             taxon_ids: all_taxons.map(&:first),
             taxon_names: all_taxons.map(&:last),
-            skus: all_variants.map(&:last),
-            total_on_hand: total_on_hand,
+            isins: isins,
             has_image: images.count > 0,
-            purchasable: purchasable?
+            shipping_category_ids: shipping_category_ids,
+            price: price,
           }
 
           json.merge!(option_types_for_es_index(all_variants))
@@ -143,31 +152,58 @@ module SpreeSearchkick
             end
           end
         end
+
+        isins = []
+        presenter[:variants].each {|variant| isins << variant[:isin] if !variant[:isin].blank? }
+        isins.uniq!
+
         properties = presenter[:properties]&.select {|prop| !prop[:value].blank? }
         if properties.nil?
           properties = []
         end
+
+        option_type_ids = presenter[:options].map {|option_type| option_type[:option_type_id] }
+        option_value_ids = []
+        presenter[:options].each {|option_type| option_value_ids.concat(option_type[:option_values].map {|option_value| option_value[:id] })}
+        option_value_ids.uniq!
+
+        shipping_category_ids = []
+        price = 0
+        if true
+          # inventories = ::SpreeSearchkick::Spree::Inventory.where(product_id: self.id).where(purchasable: true).where("price > 0")
+          inventories.where(purchasable: true).where('price > 0').each do |inv|
+            shipping_category_ids << inv.shipping_category_id
+            if price == 0 || inv.price < price
+              price = inv.price
+            end
+          end
+          shipping_category_ids.uniq!
+        else
+          sellable_variants = []
+          presenter[:variants].each {|v| sellable_variants << v if v[:available] && v[:purchasable] && v[:price] > 0 }
+
+          sellable_variants.each {|v| shipping_category_ids << v[:shipping_category_id] if v[:shipping_category_id].present? }
+          shipping_category_ids.uniq!
+
+          sellable_variants.each {|v| price = v[:price] if v[:price] < price || price == 0 }
+        end
+
         json = {
           id: presenter[:id],
           name: presenter[:name],
           slug: presenter[:slug],
-          description: presenter[:description],
-          active: presenter[:available],
-          in_stock: presenter[:in_stock],
           created_at: presenter[:created_at],
           updated_at: presenter[:updated_at],
-          price: presenter[:price].blank? ? 0 : presenter[:price].to_f.round(2),
-          currency: presenter[:currency],
-          conversions: presenter[:conversions],
           taxon_ids: taxons.values.map {|t| t[:id] },
           taxon_names: taxons.values.map {|t| t[:name] },
-          skus: presenter[:variants].map {|v| v[:sku] },
-          total_on_hand: presenter[:total_on_hand],
-          has_image: presenter[:images].blank? ? false : true,
-          purchasable: presenter[:purchasable],
+          isins: isins,
+          has_image: presenter[:images].present?,
           property_ids: properties.map {|prop| prop[:id] },
           property_names: properties.map {|prop| prop[:name] },
-          properties: properties.map {|prop| { id: prop[:id], name: prop[:name], value: prop[:value] } }
+          option_type_ids: option_type_ids,
+          option_value_ids: option_value_ids,
+          shipping_category_ids: shipping_category_ids,
+          price: price,
         }
 
         properties.each do |prop|
@@ -214,7 +250,6 @@ module SpreeSearchkick
 
         json = { property_ids: filterable_properties.map { |p| p[:id] } }
         json.merge!(property_names: filterable_properties.map { |p| p[:name] })
-        json.merge!(properties: filterable_properties)
 
         filterable_properties.each do |prop|
           json.merge!(Hash[prop[:name].downcase, prop[:value].downcase]) if prop[:value].present?

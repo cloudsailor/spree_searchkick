@@ -9,11 +9,9 @@ module SpreeSearchkick
       end
 
       def sync_inventory
-        return unless is_inventory?
-
         attrs = {
           product_id: product_id,
-          variant_id: parent_id,
+          variant_id: parent_id || self.id,
           isin: isin,
           inv_id: self.id,
           vendor_id: vendor_id,
@@ -25,16 +23,15 @@ module SpreeSearchkick
           currency: currency,
           shipping_category_id: shipping_category_id
         }
-        if inventory.blank?
-          ::Spree::Inventory.create(attrs)
-        else
-          attrs.delete(:inv_id)
-          inventory.update(attrs)
+        begin
+          if inventory.blank?
+            ::Spree::Inventory.create(attrs)
+          else
+            attrs.delete(:inv_id)
+            inventory.update(attrs)
+          end
+        rescue ActiveRecord::RecordNotUnique
         end
-      end
-
-      def is_inventory?
-        parent_id.present? && vendor_id.present?
       end
     end
   end
