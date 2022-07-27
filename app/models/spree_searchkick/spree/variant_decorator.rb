@@ -2,7 +2,7 @@ module SpreeSearchkick
   module Spree
     module VariantDecorator
       def self.prepended(base)
-        base.has_one :inventory, class_name: 'Spree::Inventory', foreign_key: :inv_id, inverse_of: :inventory, dependent: :destroy
+        base.has_one :inventory, class_name: '::SpreeSearchkick::Spree::Inventory', foreign_key: :inv_id, inverse_of: :variant, dependent: :destroy
 
         base.after_save :sync_inventory
         base.after_destroy :sync_inventory
@@ -25,12 +25,13 @@ module SpreeSearchkick
         }
         begin
           if inventory.blank?
-            ::Spree::Inventory.create(attrs)
+            ::SpreeSearchkick::Spree::Inventory.create(attrs)
           else
             attrs.delete(:inv_id)
             inventory.update(attrs)
           end
         rescue ActiveRecord::RecordNotUnique
+          # TODO: We have to ensure inventory consistent
         end
       end
     end
