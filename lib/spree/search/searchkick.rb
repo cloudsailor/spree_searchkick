@@ -65,6 +65,9 @@ module Spree
           where_query = where_query.merge(args)
         end
         where_query[:taxon_ids] = taxon.id if taxon
+        if country
+          where_query[:countries] = country
+        end
 
         (::Spree::Product.try(:filter_fields) || []).each do |filter_field|
           if @properties.include?(filter_field)
@@ -123,6 +126,7 @@ module Spree
 
         @properties[:search] = options.delete(:search)
         @properties[:taxon] = params[:taxon].blank? ? nil : Spree::Taxon.find(params.delete(:taxon))
+        @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.upcase
 
         @properties[:sort_by] = options.delete(:sort_by) || 'default'
 

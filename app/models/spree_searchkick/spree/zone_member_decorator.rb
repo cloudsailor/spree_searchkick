@@ -16,6 +16,13 @@ module SpreeSearchkick
         end.flatten.uniq
 
         ::SpreeSearchkick::Spree::ShippingCountry.add(self.zoneable, shipping_category_ids)
+
+        shipping_category_ids = self.zone.shipping_methods.map do |sm|
+          sm.shipping_categories.map {|sc| sc.id }
+        end.flatten.uniq
+        return if shipping_category_ids.blank?
+
+        ::SpreeSearchkick::Spree::ShippingCategoryCountry.add(shipping_category_ids)
       end
     end
   end

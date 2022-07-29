@@ -43,7 +43,7 @@ module SpreeSearchkick
         end
 
         def base.filter_fields
-          [:brand, :taxon_ids, :isins, :has_image, :property_ids, :option_type_ids, :option_value_ids, :shipping_category_ids, :price]
+          [:brand, :taxon_ids, :isins, :has_image, :property_ids, :option_type_ids, :option_value_ids, :shipping_category_ids, :countries, :price]
         end
 
         def base.replace_indice
@@ -116,6 +116,9 @@ module SpreeSearchkick
           shipping_category_ids = []
           sellable_variants.each {|v| shipping_category_ids << v.shipping_category_id if v.shipping_category_id.present? }
           shipping_category_ids.uniq!
+          countries = shipping_category_ids.map do |sc_id|
+            ::SpreeSearchkick::Spree::ShippingCategoryCountry.countries_for_shipping_category(sc_id)
+          end.flatten.uniq
 
           price = 0
           sellable_variants.each {|v| price = v.price if v.price < price || price == 0 }
@@ -131,6 +134,7 @@ module SpreeSearchkick
             isins: isins,
             has_image: images.count > 0,
             shipping_category_ids: shipping_category_ids,
+            countries: countries,
             price: price,
           }
 
@@ -188,6 +192,10 @@ module SpreeSearchkick
           sellable_variants.each {|v| price = v[:price] if v[:price] < price || price == 0 }
         end
 
+        countries = shipping_category_ids.map do |sc_id|
+          ::SpreeSearchkick::Spree::ShippingCategoryCountry.countries_for_shipping_category(sc_id)
+        end.flatten.uniq
+
         json = {
           id: presenter[:id],
           name: presenter[:name],
@@ -203,6 +211,7 @@ module SpreeSearchkick
           option_type_ids: option_type_ids,
           option_value_ids: option_value_ids,
           shipping_category_ids: shipping_category_ids,
+          countries: countries,
           price: price,
         }
 

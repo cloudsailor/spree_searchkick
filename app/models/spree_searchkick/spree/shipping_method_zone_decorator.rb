@@ -18,6 +18,11 @@ module SpreeSearchkick
 
           ::SpreeSearchkick::Spree::ShippingCountry.add(c, shipping_category_ids)
         end
+
+        shipping_category_ids = self.shipping_method&.shipping_categories&.map {|sc| sc.id }&.uniq
+        return if shipping_category_ids.blank?
+
+        ::SpreeSearchkick::Spree::ShippingCategoryCountry.add(shipping_category_ids)
       end
     end
   end

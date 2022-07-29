@@ -19,6 +19,8 @@ module SpreeSearchkick
 
           ::SpreeSearchkick::Spree::ShippingCountry.add(c, shipping_category_ids)
         end
+
+        ::SpreeSearchkick::Spree::ShippingCategoryCountry.add([self.shipping_category.id])
       end
     end
   end
