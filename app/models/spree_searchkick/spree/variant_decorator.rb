@@ -4,8 +4,8 @@ module SpreeSearchkick
       def self.prepended(base)
         base.has_one :inventory, class_name: '::SpreeSearchkick::Spree::Inventory', foreign_key: :inv_id, inverse_of: :variant, dependent: :destroy
 
-        base.after_save :sync_inventory
-        base.after_destroy :sync_inventory
+        # base.after_save :sync_inventory
+        # base.after_destroy :sync_inventory
       end
 
       def sync_inventory

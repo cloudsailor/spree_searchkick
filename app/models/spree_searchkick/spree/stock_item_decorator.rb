@@ -12,7 +12,7 @@ module SpreeSearchkick
       def propagate
         return if variant.blank?
 
-        variant.sync_inventory
+        # variant.sync_inventory
       end
     end
   end
