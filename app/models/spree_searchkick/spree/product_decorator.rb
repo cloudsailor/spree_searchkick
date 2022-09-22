@@ -109,6 +109,11 @@ module SpreeSearchkick
 
           all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
 
+          quantity = total_on_hand
+          if quantity == Float::INFINITY
+            quantity = 100
+          end
+
           json = {
             id: id,
             name: name,
@@ -124,7 +129,7 @@ module SpreeSearchkick
             taxon_ids: all_taxons.map(&:first),
             taxon_names: all_taxons.map(&:last),
             skus: all_variants.map(&:last),
-            total_on_hand: total_on_hand,
+            total_on_hand: quantity,
             has_image: images.count > 0,
             purchasable: purchasable?
           }
@@ -151,6 +156,12 @@ module SpreeSearchkick
         if properties.nil?
           properties = []
         end
+
+        quantity = presenter[:total_on_hand]
+        if quantity == Float::INFINITY
+          quantity = 100
+        end
+
         json = {
           id: presenter[:id],
           name: presenter[:name],
@@ -166,7 +177,7 @@ module SpreeSearchkick
           taxon_ids: taxons.values.map {|t| t[:id] },
           taxon_names: taxons.values.map {|t| t[:name] },
           skus: presenter[:variants].map {|v| v[:sku] },
-          total_on_hand: presenter[:total_on_hand],
+          total_on_hand: quantity,
           has_image: presenter[:images].blank? ? false : true,
           purchasable: presenter[:purchasable],
           property_ids: properties.map {|prop| prop[:id] },
