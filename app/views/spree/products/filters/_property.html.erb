@@ -1,0 +1,21 @@
+<% ::Spree::Property.filterable.each do |property| %>
+<% name_sym = property.filter_name.to_sym %>
+<% id_str = "filters#{property.filter_name.capitalize}" %>
+<% control_str = "collapseFilter#{property.filter_name.capitalize}" %>
+<div class="card-header text-capitalize <%= 'collapsed' if params[property.filter_name].blank? %> plp-filters-card-header" id="<%= id_str %>" data-toggle="collapse" data-target="#<%= control_str %>" aria-expanded="true" aria-controls="<%= control_str %>" role="heading" aria-level="2">
+  <%= property.presentation %>
+</div>
+<div id="<%= control_str %>" class="card-body collapse show" aria-labelledby="<%= id_str %>">
+  <div class="card-body px-0 pt-1">
+    <% property.filter_values.each do |val| %>
+      <% val_lower = val.downcase %>
+      <% prop_param_val = params[name_sym] == val_lower ? '' : val_lower %>
+      <% prop_param = {} %>
+      <% prop_param[name_sym] = prop_param_val %>
+      <%= link_to permitted_params.merge(prop_param), class: "d-block" do %>
+        <li><input type="checkbox" <%= 'checked' if params[name_sym] == val_lower %>><label><%= val %></label></li>
+      <% end %>
+    <% end %>
+  </div>
+</div>
+<% end %>

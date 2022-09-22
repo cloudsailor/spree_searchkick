@@ -3,3 +3,7 @@
 
 en:
   hello: "Hello world"
+  spree:
+    plp:
+      property: "Property"
+      option_type: "OptionType"

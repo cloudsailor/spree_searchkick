@@ -23,6 +23,10 @@ module SpreeSearchkick
       end
 
       ::Spree::Config.searcher_class = ::Spree::Search::Searchkick
+
+      unless ::Spree::Frontend::Config[:additional_filters_partials].include?(:property)
+        ::Spree::Frontend::Config[:additional_filters_partials] << :property
+      end
     end
 
     config.to_prepare &method(:activate).to_proc

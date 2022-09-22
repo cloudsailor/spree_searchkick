@@ -41,7 +41,11 @@ module SpreeSearchkick
         end
 
         def base.filter_fields
-          [:price, :brand, :in_stock, :conversions, :has_image, :total_on_hand, :purchasable, :taxon_ids]
+          fields = [:price, :brand, :in_stock, :conversions, :has_image, :total_on_hand, :purchasable, :taxon_ids]
+          fields.concat(::Spree::Property.filterable.map {|prop| prop.filter_name })
+          fields.concat(::Spree::OptionType.filterable.map {|ot| ot.filter_name })
+
+          fields.compact.uniq
         end
 
         def base.replace_indice
