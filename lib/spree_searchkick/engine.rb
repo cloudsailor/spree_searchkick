@@ -24,8 +24,8 @@ module SpreeSearchkick
 
       ::Spree::Config.searcher_class = ::Spree::Search::Searchkick
 
-      unless ::Spree::Frontend::Config[:additional_filters_partials].include?(:property)
-        ::Spree::Frontend::Config[:additional_filters_partials] << :property
+      unless ::Spree::Frontend::Config.additional_filters_partials.include?(:property)
+        ::Spree::Frontend::Config.additional_filters_partials = ::Spree::Frontend::Config.additional_filters_partials.concat([:property])
       end
     end
 
