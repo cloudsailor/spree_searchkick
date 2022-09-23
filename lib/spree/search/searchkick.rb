@@ -67,7 +67,7 @@ module Spree
         where_query[:taxon_ids] = taxon.id if taxon
 
         (::Spree::Product.try(:filter_fields) || []).each do |filter_field|
-          if @properties.include?(filter_field)
+          if @properties.include?(filter_field) && @properties[filter_field].present?
             where_query[filter_field] = @properties[filter_field]
           end
         end
