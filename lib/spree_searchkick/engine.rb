@@ -22,6 +22,10 @@ module SpreeSearchkick
         end
       end
 
+      Dir.glob(File.join(File.dirname(__FILE__), '../../app/helpers/**/*_decorator*.rb')) do |c|
+        Rails.configuration.cache_classes ? require(c) : load(c)
+      end
+
       ::Spree::Config.searcher_class = ::Spree::Search::Searchkick
 
       unless ::Spree::Frontend::Config.additional_filters_partials.include?(:property)
