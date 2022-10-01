@@ -9,7 +9,7 @@ module SpreeSearchkick
         return unless complete?
 
         if ::ActiveRecord::Base.connection.column_exists?(:spree_products, :conversions)
-          products.each {|product| product.update_column(conversions: product.orders.complete.count) }
+          products.each {|product| product.update_column(:conversions, product.orders.complete.count) }
         end
 
         products.map(&:reindex)
