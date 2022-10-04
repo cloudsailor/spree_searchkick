@@ -6,32 +6,13 @@ module SpreeSearchkick
 
         # base.after_save :sync_inventory
         # base.after_destroy :sync_inventory
+        base.after_save :reindex_product
+        base.after_destroy :reindex_product
       end
 
-      def sync_inventory
-        attrs = {
-          product_id: product_id,
-          variant_id: parent_id || self.id,
-          isin: isin,
-          inv_id: self.id,
-          vendor_id: vendor_id,
-          sku: sku,
-          selling_at: created_at,
-          purchasable: purchasable?,
-          in_stock: in_stock?,
-          price: price,
-          currency: currency,
-          shipping_category_id: shipping_category_id
-        }
-        begin
-          if inventory.blank?
-            ::SpreeSearchkick::Spree::Inventory.create(attrs)
-          else
-            attrs.delete(:inv_id)
-            inventory.update(attrs)
-          end
-        rescue ActiveRecord::RecordNotUnique
-          # TODO: We have to ensure inventory consistent
+      def reindex_product
+        if self.new_record? || self.destroyed? || self.shipping_category_id_changed?
+          self.product.reindex
         end
       end
     end

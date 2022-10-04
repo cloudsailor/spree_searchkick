@@ -30,9 +30,9 @@ module SpreeSearchkick
           )
         }
 
-        base.skip_callback :commit, :after, :reindex, raise: false
-        base.after_save :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
-        base.after_destroy :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        base.before_save :check_for_reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        base.before_destroy :check_for_reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        base.after_commit :do_reindex
 
         def base.autocomplete_fields
           [:name]
@@ -95,6 +95,24 @@ module SpreeSearchkick
         # ex add_searchkick_option { settings: { "index.mapping.total_fields.limit": 2000 } }
         def base.add_searchkick_option(option)
           base.class_variable_set(:@@searchkick_options, base.searchkick_options.deep_merge(option))
+        end
+      end
+
+      def check_for_reindex
+        if new_record? || name_changed?
+          mark_for_reindex
+        end
+      end
+
+      def mark_for_reindex
+        @should_reindex = true
+      end
+
+      def do_reindex
+        if @should_reindex.present?
+          binding.pry
+          self.reindex
+          @should_reindex = false
         end
       end
 
@@ -263,6 +281,17 @@ module SpreeSearchkick
       def index_data
         {}
       end
+
+      def after_add_for_taxon_hook(taxon)
+        updated_at = Time.now
+        mark_for_reindex
+      end
+
+      def after_remove_for_taxon_hook(taxon)
+        updated_at = Time.now
+        mark_for_reindex
+      end
+
     end
   end
 end
