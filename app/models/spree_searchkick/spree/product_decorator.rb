@@ -110,7 +110,6 @@ module SpreeSearchkick
 
       def do_reindex
         if @should_reindex.present?
-          binding.pry
           self.reindex
           @should_reindex = false
         end
