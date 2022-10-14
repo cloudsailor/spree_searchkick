@@ -65,7 +65,7 @@ module SpreeSearchkick
 
         def base.autocomplete(keywords)
           if keywords
-            Spree::Product.search(
+            ::Spree::Product.search(
               keywords,
               fields: autocomplete_fields,
               match: :word_start,
@@ -75,7 +75,7 @@ module SpreeSearchkick
               where: search_where,
             ).map(&:name).map(&:strip).uniq
           else
-            Spree::Product.search(
+            ::Spree::Product.search(
               "*",
               fields: autocomplete_fields,
               load: false,
