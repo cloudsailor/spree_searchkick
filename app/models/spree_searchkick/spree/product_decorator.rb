@@ -32,7 +32,7 @@ module SpreeSearchkick
 
         base.before_save :check_for_reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
         base.before_destroy :check_for_reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
-        base.after_commit :do_reindex
+        base.after_save_commit :do_reindex
 
         def base.autocomplete_fields
           [:name]
