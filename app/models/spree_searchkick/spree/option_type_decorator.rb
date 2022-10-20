@@ -3,6 +3,16 @@ module SpreeSearchkick
     module OptionTypeDecorator
       def self.prepended(base)
         base.scope :filterable, -> { where(filterable: true) }
+
+        base.instance_eval do
+          def filterable_option_types
+            if ::Spree::OptionType.respond_to?(:fetch_all_by)
+              ::Spree::OptionType.fetch_all_by(filterable: true)
+            else
+              ::Spree::OptionType.filterable
+            end
+          end
+        end
       end
 
       def filter_name

@@ -1,4 +1,4 @@
-<% ::Spree::Property.filterable.each do |property| %>
+<% ::Spree::Property.filterable_properties.each do |property| %>
 <% name_sym = property.filter_name.to_sym %>
 <% id_str = "mobileFilters#{property.filter_name.capitalize}" %>
 <% control_str = "mobileCollapseFilter#{property.filter_name.capitalize}" %>

@@ -42,8 +42,8 @@ module SpreeSearchkick
 
         def base.filter_fields
           fields = [:price, :brand, :in_stock, :conversions, :has_image, :total_on_hand, :purchasable, :taxon_ids]
-          fields.concat(::Spree::Property.filterable.map {|prop| prop.filter_name })
-          fields.concat(::Spree::OptionType.filterable.map {|ot| ot.filter_name })
+          fields.concat(::Spree::Property.filterable_properties.map {|prop| prop.filter_name })
+          fields.concat(::Spree::OptionType.filterable_option_types.map {|ot| ot.filter_name })
 
           fields.compact.uniq
         end
