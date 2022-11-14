@@ -186,7 +186,11 @@ module SpreeSearchkick
         }
 
         properties.each do |prop|
-          json.merge!(Hash[prop[:name].downcase, prop[:value].downcase])
+          json.merge!(Hash[prop[:name].downcase, prop[:value].downcase].symbolize_keys)
+        end
+
+        if !json.has_key?(:brand) && presenter[:brand].present?
+          json[:brand] = presenter[:brand]
         end
 
         json
