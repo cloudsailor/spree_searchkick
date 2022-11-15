@@ -190,7 +190,7 @@ module SpreeSearchkick
         end
 
         if !json.has_key?(:brand) && presenter[:brand].present?
-          json[:brand] = presenter[:brand]
+          json[:brand] = presenter[:brand].downcase
         end
 
         json
