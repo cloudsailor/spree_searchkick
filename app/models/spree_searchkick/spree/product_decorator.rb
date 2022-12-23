@@ -29,7 +29,8 @@ module SpreeSearchkick
         }
 
         base.skip_callback :commit, :after, :reindex, raise: false
-        base.after_save :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        # base.after_save :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        base.after_save -> { reindex_later(300) }
         base.after_destroy :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
 
         def base.autocomplete_fields
@@ -99,6 +100,10 @@ module SpreeSearchkick
         def base.add_searchkick_option(option)
           base.class_variable_set(:@@searchkick_options, base.searchkick_options.deep_merge(option))
         end
+      end
+
+      def reindex_later(wait_seconds)
+        ::Searchkick::ReindexV2Job.set(wait: wait_seconds.seconds).perform_later('::Spree::Product', self.id)
       end
 
       def search_data
