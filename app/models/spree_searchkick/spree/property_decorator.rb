@@ -23,32 +23,34 @@ module SpreeSearchkick
           def property_values
             return @property_values if @property_values.present?
 
-            filterable_product_properties = ::Spree::ProductProperty.where(property_id: filterable_properties.map {|p| p.id }).unscope(:order)
+            Rails.cache.fetch("spree-property-values-#{::Date.today.strftime('%F')}") do |key|
+              filterable_product_properties = ::Spree::ProductProperty.where(property_id: filterable_properties.map {|p| p.id }).unscope(:order)
 
-            pvs = {}
-            filterable_product_properties.each do |pp|
-              if ['na', 'n/a', 'not applicable'].include?(pp.value.downcase)
-                next
+              pvs = {}
+              filterable_product_properties.each do |pp|
+                if ['na', 'n/a', 'not applicable'].include?(pp.value.downcase)
+                  next
+                end
+
+                k = pp.property_id
+                pvs[k] = {} unless pvs.has_key?(k)
+
+                v = pp.value
+                if pvs[k].has_key?(v)
+                  pvs[k][v] += 1
+                else
+                  pvs[k][v] = 1
+                end
               end
 
-              k = pp.property_id
-              pvs[k] = {} unless pvs.has_key?(k)
-
-              v = pp.value
-              if pvs[k].has_key?(v)
-                pvs[k][v] += 1
-              else
-                pvs[k][v] = 1
+              @property_values = {}
+              pvs.each do |k, pv|
+                pv.sort {|pv1, pv2| pv2[1] <=> pv1[1] }
+                @property_values[k] = pv.sort {|pv1, pv2| pv2[1] <=> pv1[1] }.first(30)
               end
-            end
 
-            @property_values = {}
-            pvs.each do |k, pv|
-              pv.sort {|pv1, pv2| pv2[1] <=> pv1[1] }
-              @property_values[k] = pv.sort {|pv1, pv2| pv2[1] <=> pv1[1] }.first(30)
+              @property_values
             end
-
-            @property_values
           end
         end
       end
