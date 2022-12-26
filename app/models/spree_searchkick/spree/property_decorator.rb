@@ -1,7 +1,8 @@
 module SpreeSearchkick
   module Spree
     module PropertyDecorator
-      class_variable_set :@@property_values, nil
+      # class_variable_set :@@property_values, nil
+      mattr_accessor :property_values
 
       def self.prepended(base)
         base.scope :filterable, -> { where(filterable: true) }
@@ -16,7 +17,11 @@ module SpreeSearchkick
           end
 
           def filterable_property_values
-            return @@property_values if @@property_values.present?
+            property_values
+          end
+
+          def property_values
+            return @property_values if @property_values.present?
 
             filterable_product_properties = ::Spree::ProductProperty.where(property_id: filterable_properties.map {|p| p.id }).unscope(:order)
 
@@ -37,7 +42,13 @@ module SpreeSearchkick
               end
             end
 
-            @@property_values = pvs
+            @property_values = {}
+            pvs.each do |k, pv|
+              pv.sort {|pv1, pv2| pv2[1] <=> pv1[1] }
+              @property_values[k] = pv.sort {|pv1, pv2| pv2[1] <=> pv1[1] }.first(30)
+            end
+
+            @property_values
           end
         end
       end
