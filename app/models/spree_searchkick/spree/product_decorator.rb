@@ -35,7 +35,7 @@ module SpreeSearchkick
         base.after_save_commit :do_reindex
 
         def base.autocomplete_fields
-          [:name]
+          [:name,isins]
         end
 
         def base.search_fields
@@ -43,7 +43,7 @@ module SpreeSearchkick
         end
 
         def base.filter_fields
-          [:brand, :taxon_ids, :isins, :has_image, :property_ids, :option_type_ids, :option_value_ids, :shipping_category_ids, :countries, :price]
+          [:brand, :taxon_ids,:vendor_ids, :isins, :has_image, :property_ids, :option_type_ids, :option_value_ids, :shipping_category_ids, :countries, :price]
         end
 
         def base.replace_indice
@@ -115,6 +115,10 @@ module SpreeSearchkick
         end
       end
 
+      def should_index?
+        in_stock?
+      end
+
       def search_data
         if respond_to?(:presenter)
           json = search_data_representable
@@ -140,11 +144,15 @@ module SpreeSearchkick
             id: id,
             name: name,
             slug: slug,
+            description: description,
+            main_brand: main_brand,
             created_at: created_at,
             updated_at: updated_at,
             taxon_ids: all_taxons.map(&:first),
             taxon_names: all_taxons.map(&:last),
             isins: isins,
+            skus: all_variants.map{|v| v.sku}.uniq,
+            vendor_ids: all_variants.map{|v| v.vendor_id}.uniq,
             has_image: images.count > 0,
             shipping_category_ids: shipping_category_ids,
             countries: countries,
@@ -172,6 +180,14 @@ module SpreeSearchkick
         isins = []
         presenter[:variants]&.each {|variant| isins << variant[:isin] if !variant[:isin].blank? }
         isins.uniq!
+
+        vendor_ids = []
+        presenter[:variants]&.each {|variant| vendor_ids << variant[:vendor_id] if !variant[:vendor_id].blank? }
+        vendor_ids.uniq!
+
+        skus = []
+        presenter[:variants]&.each {|variant| skus << variant[:sku] if !variant[:sku].blank? }
+        skus.uniq!
 
         properties = presenter[:properties]&.select {|prop| !prop[:value].blank? }
         if properties.nil?
@@ -223,6 +239,11 @@ module SpreeSearchkick
           shipping_category_ids: shipping_category_ids,
           countries: countries,
           price: price,
+          vendor_ids: vendor_ids,
+          skus: skus,
+          description: description,
+          active: presenter[:available],
+          in_stock: presenter[:in_stock],
         }
 
         properties.each do |prop|

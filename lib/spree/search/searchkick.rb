@@ -47,8 +47,7 @@ module Spree
               smart_aggs: true,
             })
           end
-
-          ::Spree::Product.search(keyword_query, **options)
+          ::Spree::Product.search(keyword_query, **options, debug: true)
         else
           options.merge!({body: @properties[:body]})
           ::Spree::Product.search(keyword_query, **options)
@@ -67,6 +66,10 @@ module Spree
         where_query[:taxon_ids] = taxon.id if taxon
         if country
           where_query[:countries] = country
+        end
+
+        if vendor_id
+          where_query[:vendor_ids] = vendor_id
         end
 
         (::Spree::Product.try(:filter_fields) || []).each do |filter_field|
@@ -127,7 +130,7 @@ module Spree
         @properties[:search] = options.delete(:search)
         @properties[:taxon] = params[:taxon].blank? ? nil : Spree::Taxon.find(params.delete(:taxon))
         @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.upcase
-
+        @properties[:vendor_id] = params[:vendor_id].blank? ? nil : params.delete(:vendor_id)
         @properties[:sort_by] = options.delete(:sort_by) || 'default'
 
         per_page = params[:per_page].to_i
