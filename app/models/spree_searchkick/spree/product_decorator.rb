@@ -248,7 +248,7 @@ module SpreeSearchkick
             v[:prices].each do |p|
               if p[:amount] < price || price == 0
                 price = p[:amount]
-                if p[:compare_at_amount] > 0
+                if p[:compare_at_amount].present? && p[:compare_at_amount] > 0
                   compare_at_price = p[:compare_at_amount]
                 end
               end
@@ -278,7 +278,7 @@ module SpreeSearchkick
           countries: countries,
           price: price,
           compare_at_price: compare_at_price,
-          on_sale: compare_at_price > 0 ? 1 : 0,
+          on_sale: compare_at_price.present? && compare_at_price > 0 ? 1 : 0,
           vendor_ids: vendor_ids,
           skus: skus,
           description: description,
