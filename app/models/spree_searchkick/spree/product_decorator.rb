@@ -120,66 +120,73 @@ module SpreeSearchkick
       end
 
       def search_data
-        # if respond_to?(:presenter)
-        #   json = search_data_representable
-        # else
-        all_variants = variants_including_master_and_children
+        if respond_to?(:presenter)
+          json = search_data_representable
+        else
+          all_variants = variants_including_master_and_children
 
-        all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
+          all_taxons = taxons.flat_map { |t| t.self_and_ancestors.pluck(:id, :name) }.uniq
 
-        isins = []
-        all_variants.each { |v| isins << v.isin unless v.isin.blank? }
-        isins.uniq!
+          isins = []
+          all_variants.each { |v| isins << v.isin unless v.isin.blank? }
+          isins.uniq!
 
-        vendor_ids = []
-        all_variants.each { |variant| vendor_ids << variant[:vendor_id] unless variant[:vendor_id].blank? }
-        vendor_ids.uniq!
+          vendor_ids = []
+          all_variants.each { |variant| vendor_ids << variant[:vendor_id] unless variant[:vendor_id].blank? }
+          vendor_ids.uniq!
 
-        skus = []
-        all_variants.each { |variant| skus << variant[:sku] unless variant[:sku].blank? }
-        skus.uniq!
+          skus = []
+          all_variants.each { |variant| skus << variant[:sku] unless variant[:sku].blank? }
+          skus.uniq!
 
+          option_type_ids = options.map { |option_type| option_type[:option_type_id] }
+          option_value_ids = []
+          options.each { |option_type| option_value_ids.concat(option_type[:option_values]&.map { |option_value| option_value[:id] } || []) }
+          option_value_ids.uniq!
 
-        option_type_ids = options.map { |option_type| option_type[:option_type_id] }
-        option_value_ids = []
-        options.each { |option_type| option_value_ids.concat(option_type[:option_values]&.map { |option_value| option_value[:id] } || []) }
-        option_value_ids.uniq!
+          sellable_variants = all_variants.select { |v| v.available? && v.purchasable? && v.price > 0 }
 
-        sellable_variants = all_variants.select { |v| v.available? && v.purchasable? && v.price > 0 }
+          shipping_category_ids = []
+          sellable_variants.each { |v| shipping_category_ids << v.shipping_category_id if v.shipping_category_id.present? }
+          shipping_category_ids.uniq!
+          countries = self.ship_to_country_codes
 
-        shipping_category_ids = []
-        sellable_variants.each { |v| shipping_category_ids << v.shipping_category_id if v.shipping_category_id.present? }
-        shipping_category_ids.uniq!
-        countries = self.ship_to_country_codes
-
-        price = 0
-        sellable_variants.each { |v| price = v.price if v.price < price || price == 0 }
-        json = {
-          id: id,
-          name: name,
-          slug: slug,
-          created_at: created_at,
-          updated_at: updated_at,
-          taxon_ids: all_taxons.map(&:first),
-          taxon_names: all_taxons.map(&:last),
-          isins: isins,
-          has_image: images.count > 0,
-          option_type_ids: option_type_ids,
-          option_value_ids: option_value_ids,
-
-          shipping_category_ids: shipping_category_ids,
-          countries: countries,
-          price: price,
-          description: description,
-          main_brand: main_brand,
-          skus: all_variants.map { |v| v.sku }.uniq,
-          vendor_ids: all_variants.map { |v| v.vendor_id }.uniq,
-          active: available?,
-          in_stock: in_stock?,
-        }
-        json.merge!(option_types_for_es_index(all_variants))
-        json.merge!(properties_for_es_index)
-        # end
+          price = 0
+          compare_at_price = 0
+          sellable_variants.each do |v|
+            if v.price < price || price == 0
+              price = v.price
+              compare_at_price = v.compare_at_price
+            end
+          end
+          # sellable_variants.each { |v| price = v.price compare_at_price = v.compare_at_price if v.price < price || price == 0 }
+          json = {
+            id: id,
+            name: name,
+            slug: slug,
+            created_at: created_at,
+            updated_at: updated_at,
+            taxon_ids: all_taxons.map(&:first),
+            taxon_names: all_taxons.map(&:last),
+            isins: isins,
+            has_image: images.count > 0,
+            option_type_ids: option_type_ids,
+            option_value_ids: option_value_ids,
+            shipping_category_ids: shipping_category_ids,
+            countries: countries,
+            price: price,
+            compare_at_price: compare_at_price,
+            on_sale: compare_at_price > 0 ? 1 : 0,
+            description: description,
+            main_brand: main_brand,
+            skus: all_variants.map { |v| v.sku }.uniq,
+            vendor_ids: all_variants.map { |v| v.vendor_id }.uniq,
+            active: available?,
+            in_stock: in_stock?,
+          }
+          json.merge!(option_types_for_es_index(all_variants))
+          json.merge!(properties_for_es_index)
+        end
 
         json.merge!(index_data)
 
@@ -220,6 +227,7 @@ module SpreeSearchkick
 
         shipping_category_ids = []
         price = 0
+        compare_at_price = 0
         if false
           # inventories = ::SpreeSearchkick::Spree::Inventory.where(product_id: self.id).where(purchasable: true).where("price > 0")
           inventories.where(purchasable: true).where('price > 0').each do |inv|
@@ -231,12 +239,23 @@ module SpreeSearchkick
           shipping_category_ids.uniq!
         else
           sellable_variants = []
-          presenter[:variants].each { |v| sellable_variants << v if v[:available] && v[:purchasable] && v[:price].to_f > 0 }
+          presenter[:variants].each { |v| sellable_variants << v if v[:available] && v[:in_stock] }
 
           sellable_variants.each { |v| shipping_category_ids << v[:shipping_category_id] if v[:shipping_category_id].present? }
           shipping_category_ids.uniq!
 
-          sellable_variants.each { |v| price = v[:price].to_f if v[:price].to_f < price || price == 0 }
+          sellable_variants.each do |v|
+            v[:prices].each do |p|
+              if p[:amount] < price || price == 0
+                price = p[:amount]
+                if p[:compare_at_amount] > 0
+                  compare_at_price = p[:compare_at_amount]
+                end
+              end
+            end
+          end
+
+          # sellable_variants.each { |v| price = v[:price].to_f compare_at_price = v[:compare_at_price].to_f if v[:price].to_f < price || price == 0 }
         end
 
         countries = presenter[:variants]&.map { |v| v[:ship_to_country_codes] }.flatten.uniq
@@ -258,11 +277,12 @@ module SpreeSearchkick
           shipping_category_ids: shipping_category_ids,
           countries: countries,
           price: price,
+          compare_at_price: compare_at_price,
+          on_sale: compare_at_price > 0 ? 1 : 0,
           vendor_ids: vendor_ids,
           skus: skus,
           description: description,
           active: presenter[:available],
-          in_stock: presenter[:in_stock],
         }
 
         properties.each do |prop|
