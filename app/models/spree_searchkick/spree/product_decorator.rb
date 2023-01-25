@@ -35,11 +35,11 @@ module SpreeSearchkick
         base.after_save_commit :do_reindex
 
         def base.autocomplete_fields
-          [:name, isins]
+          [:name]
         end
 
         def base.search_fields
-          [:name]
+          [:name, :isins, :brand]
         end
 
         def base.filter_fields
@@ -241,7 +241,7 @@ module SpreeSearchkick
           sellable_variants = []
           presenter[:variants].each { |v| sellable_variants << v if v[:available] && v[:in_stock] }
 
-          sellable_variants.each { |v| shipping_category_ids << v[:shipping_category_id] if v[:shipping_category_id].present? }
+          sellable_variants.each { |v| shipping_category_ids << v[:shipping_category][:id] if v[:shipping_category].present? }
           shipping_category_ids.uniq!
 
           sellable_variants.each do |v|
