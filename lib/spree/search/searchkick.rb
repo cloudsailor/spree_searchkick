@@ -129,7 +129,7 @@ module Spree
 
         @properties[:search] = options.delete(:search)
         @properties[:taxon] = params[:taxon].blank? ? nil : Spree::Taxon.find(params.delete(:taxon))
-        @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.upcase
+        @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.downcase
         @properties[:vendor_id] = params[:vendor_id].blank? ? nil : params.delete(:vendor_id)
         @properties[:sort_by] = options.delete(:sort_by) || 'default'
 
