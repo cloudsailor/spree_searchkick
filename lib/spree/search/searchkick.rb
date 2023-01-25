@@ -65,7 +65,7 @@ module Spree
         end
         where_query[:taxon_ids] = taxon.id if taxon
         if country
-          where_query[:countries] = country
+          where_query[:countries] = country.downcase
         end
 
         if vendor_id

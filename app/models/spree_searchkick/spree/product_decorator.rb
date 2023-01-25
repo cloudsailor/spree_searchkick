@@ -115,9 +115,9 @@ module SpreeSearchkick
         end
       end
 
-      def should_index?
-        in_stock?
-      end
+      # def should_index?
+      #   in_stock?
+      # end
 
       def search_data
         if respond_to?(:presenter)
@@ -281,7 +281,6 @@ module SpreeSearchkick
           on_sale: compare_at_price.present? && compare_at_price > 0 ? 1 : 0,
           vendor_ids: vendor_ids,
           skus: skus,
-          description: description,
           active: presenter[:available],
         }
 
