@@ -8,20 +8,20 @@ module Spree
       end
 
       def retrieve_products(**args)
-        @products =  defined?(args) ? base_elasticsearch(args) : base_elasticsearch
+        @products = defined?(args) ? base_elasticsearch(args) : base_elasticsearch
       end
 
       def base_elasticsearch(**args)
         curr_page = page || 1
         dft_includes = [
-            # :tax_category,
-            variants: [
-                {images: {attachment_attachment: :blob}}
-            ],
-            master: [
-                :prices,
-                {images: {attachment_attachment: :blob}}
-            ]
+          # :tax_category,
+          variants: [
+            { images: { attachment_attachment: :blob } }
+          ],
+          master: [
+            :prices,
+            { images: { attachment_attachment: :blob } }
+          ]
         ]
         includes = args.delete(:includes)
         if includes.nil?
@@ -37,19 +37,19 @@ module Spree
         }
         if @properties[:body].blank?
           options.merge!({
-            fields: Spree::Product.search_fields,
-            where: defined?(args) ? where_query(**args) : where_query,
-            order: sorted,
-          })
+                           fields: Spree::Product.search_fields,
+                           where: defined?(args) ? where_query(**args) : where_query,
+                           order: sorted,
+                         })
           if @enable_aggregations
             options.merge!({
-              aggs: aggregations,
-              smart_aggs: true,
-            })
+                             aggs: aggregations,
+                             smart_aggs: true,
+                           })
           end
           ::Spree::Product.search(keyword_query, **options, debug: true)
         else
-          options.merge!({body: @properties[:body]})
+          options.merge!({ body: @properties[:body] })
           ::Spree::Product.search(keyword_query, **options)
         end
       end
@@ -57,7 +57,7 @@ module Spree
       def where_query(**args)
         where_query = {
           # active: true,
-          price: { gt: 0 },
+          price: { gt: 0 }
         }
 
         if defined?(args)
@@ -65,7 +65,7 @@ module Spree
         end
         where_query[:taxon_ids] = taxon.id if taxon
         if country
-          where_query[:countries] = country.downcase
+          where_query[:countries] = country.upcase
         end
 
         if vendor_id
@@ -107,8 +107,8 @@ module Spree
 
       def aggregation_classes
         [
-          Spree::Taxonomy, 
-          Spree::Property, 
+          Spree::Taxonomy,
+          Spree::Property,
           Spree::OptionType
         ]
       end
@@ -129,7 +129,7 @@ module Spree
 
         @properties[:search] = options.delete(:search)
         @properties[:taxon] = params[:taxon].blank? ? nil : Spree::Taxon.find(params.delete(:taxon))
-        @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.downcase
+        @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.upcase
         @properties[:vendor_id] = params[:vendor_id].blank? ? nil : params.delete(:vendor_id)
         @properties[:sort_by] = options.delete(:sort_by) || 'default'
 
@@ -149,12 +149,16 @@ module Spree
             price_range = get_price_range(options[:price])
             unless price_range.blank?
               low_price, high_price = price_range.split(',').map(&:to_i)
-              @properties[:price] = {gt: low_price, lte: high_price}
+              @properties[:price] = { gt: low_price, lte: high_price }
             end
           else
             @properties[filter_field] = options[filter_field]
           end
         end
+        if @properties[:price].blank?
+          @properties[:price] = { gt: 0 }
+        end
+
         unless params[:include_images].blank?
           @properties[:has_image] = params[:include_images]
         end
