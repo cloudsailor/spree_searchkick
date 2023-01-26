@@ -282,8 +282,7 @@ module SpreeSearchkick
           on_sale: compare_at_price.present? && compare_at_price > 0 ? 1 : 0,
           vendor_ids: vendor_ids,
           skus: skus,
-          active: presenter[:available],
-          conversions: orders.complete.count
+          active: available? && presenter[:available]
         }
 
         properties.each do |prop|
@@ -292,7 +291,6 @@ module SpreeSearchkick
 
         json
       end
-
       def option_types_for_es_index(all_variants)
         filterable_option_types = option_types.filterable.pluck(:id, :name)
         option_value_ids = ::Spree::OptionValueVariant.where(variant_id: all_variants.map(&:id)).pluck(:option_value_id).uniq
