@@ -30,9 +30,9 @@ module SpreeSearchkick
           )
         }
 
-        base.before_save :check_for_reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
-        base.before_destroy :check_for_reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
-        base.after_save_commit :do_reindex
+        base.skip_callback :commit, :after, :reindex, raise: false
+        base.after_save :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
+        base.after_destroy :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
 
         def base.autocomplete_fields
           [:name]
@@ -282,7 +282,8 @@ module SpreeSearchkick
           on_sale: compare_at_price.present? && compare_at_price > 0 ? 1 : 0,
           vendor_ids: vendor_ids,
           skus: skus,
-          active: available? && presenter[:available]
+          active: available? && presenter[:available],
+          conversions: orders.complete.count
         }
 
         properties.each do |prop|
