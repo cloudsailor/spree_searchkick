@@ -39,7 +39,7 @@ module SpreeSearchkick
         end
 
         def base.search_fields
-          [:name, :isins, :brand]
+          [:name, :isins, :brand, :main_brand]
         end
 
         def base.filter_fields
@@ -283,7 +283,8 @@ module SpreeSearchkick
           vendor_ids: vendor_ids,
           skus: skus,
           active: available? && presenter[:available],
-          conversions: orders.complete.count
+          conversions: orders.complete.count,
+          main_brand: main_brand
         }
 
         properties.each do |prop|
@@ -292,6 +293,7 @@ module SpreeSearchkick
 
         json
       end
+
       def option_types_for_es_index(all_variants)
         filterable_option_types = option_types.filterable.pluck(:id, :name)
         option_value_ids = ::Spree::OptionValueVariant.where(variant_id: all_variants.map(&:id)).pluck(:option_value_id).uniq
