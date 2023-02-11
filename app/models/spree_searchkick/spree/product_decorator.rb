@@ -184,7 +184,7 @@ module SpreeSearchkick
             active: available?,
             in_stock: in_stock?,
             conversions: orders.complete.count,
-            featured: featured? ? 1:0
+            featured: featured
           }
           json.merge!(option_types_for_es_index(all_variants))
           json.merge!(properties_for_es_index)
@@ -286,7 +286,7 @@ module SpreeSearchkick
           active: available? && presenter[:available],
           conversions: orders.complete.count,
           main_brand: main_brand,
-          featured: featured? ? 1:0
+          featured: featured
         }
 
         properties.each do |prop|
