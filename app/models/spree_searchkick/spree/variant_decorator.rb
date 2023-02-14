@@ -11,9 +11,9 @@ module SpreeSearchkick
       end
 
       def reindex_product
-        if self.new_record? || self.destroyed? || self.shipping_category_id_changed?
-          self.product.reindex
-        end
+        # if self.new_record? || self.destroyed? || self.shipping_category_id_changed?
+        self.product.reindex
+        # end
       end
     end
   end
