@@ -88,13 +88,14 @@ module Spree
       def sorted
         order_params = {}
         unless @properties[:conversions]
-          order_params = {:featured=>:desc}
+          order_params = { :featured => :desc }
         end
 
         order_params[:conversions] = :desc if @properties[:sort_by] == 'conversions' || @properties[:conversions]
         order_params[:price] = :desc if @properties[:sort_by] == 'price-high-to-low'
         order_params[:price] = :asc if @properties[:sort_by] == 'price-low-to-high'
-        order_params[:created_at] = :desc if @properties[:sort_by] == 'newest-first'
+
+        order_params[:created_at] = :desc if @properties[:sort_by] == 'newest-first' || order_params.size == 0
         order_params
       end
 
@@ -127,7 +128,6 @@ module Spree
 
       def prepare(params)
         options = params.dup
-
         @properties[:body] = options.delete(:body)
         @properties[:keywords] = options.delete(:keywords)
 
@@ -136,7 +136,7 @@ module Spree
         @properties[:country] = params[:country].blank? ? nil : params.delete(:country)&.upcase
         @properties[:vendor_id] = params[:vendor_id].blank? ? nil : params.delete(:vendor_id)
         @properties[:sort_by] = options.delete(:sort_by) || 'default'
-        @properties[:conversions] =params[:conversions]
+        @properties[:conversions] = params[:conversions]
         per_page = params[:per_page].to_i
         @properties[:per_page] = per_page > 0 ? per_page : Spree::Config[:products_per_page]
         @properties[:page] = if params[:page].respond_to?(:to_i)
@@ -163,6 +163,7 @@ module Spree
           @properties[:price] = { gt: 0 }
         end
 
+        @properties[:has_image] = true
         unless params[:include_images].blank?
           @properties[:has_image] = params[:include_images]
         end

@@ -88,6 +88,7 @@ module SpreeSearchkick
         def base.search_where
           {
             price: { gt: 0 },
+            has_image: true
           }
         end
 
