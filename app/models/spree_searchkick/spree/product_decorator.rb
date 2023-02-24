@@ -116,9 +116,9 @@ module SpreeSearchkick
         end
       end
 
-      # def should_index?
-      #   in_stock?
-      # end
+      def should_index?
+        available?
+      end
 
       def search_data
         if respond_to?(:presenter)
