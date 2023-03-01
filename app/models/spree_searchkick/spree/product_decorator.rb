@@ -291,7 +291,7 @@ module SpreeSearchkick
         }
 
         properties.each do |prop|
-          json.merge!(Hash[prop[:name].downcase, prop[:value].downcase])
+          json.merge!(Hash[prop[:name].downcase, prop[:value]])
         end
 
         json
@@ -336,7 +336,7 @@ module SpreeSearchkick
         json.merge!(property_names: filterable_properties.map { |p| p[:name] })
 
         filterable_properties.each do |prop|
-          json.merge!(Hash[prop[:name].downcase, prop[:value].downcase]) if prop[:value].present?
+          json.merge!(Hash[prop[:name].downcase, prop[:value]]) if prop[:value].present?
         end
 
         json

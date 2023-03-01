@@ -41,17 +41,20 @@ module Spree
                            where: defined?(args) ? where_query(**args) : where_query,
                            order: sorted,
                          })
-          if @enable_aggregations
+          # if @enable_aggregations
             options.merge!({
                              aggs: aggregations,
                              smart_aggs: true,
                            })
-          end
+          # end
+
           ::Spree::Product.search(keyword_query, **options, debug: true)
         else
           options.merge!({ body: @properties[:body] })
           ::Spree::Product.search(keyword_query, **options)
         end
+
+
       end
 
       def where_query(**args)
