@@ -48,7 +48,7 @@ module Spree
                            })
           # end
 
-          ::Spree::Product.search(keyword_query, **options, debug: true)
+          ::Spree::Product.search(keyword_query, **options, debug: Rails.env.development?)
         else
           options.merge!({ body: @properties[:body] })
           ::Spree::Product.search(keyword_query, **options)
