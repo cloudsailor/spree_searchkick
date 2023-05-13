@@ -5,7 +5,7 @@ module SpreeSearchkick
         base.searchkick(
           callbacks: :async,
           word_start: [:name],
-          settings: { number_of_replicas: 0 },
+          settings: { :number_of_replicas => 0, :"index.mapping.total_fields.limit" => 10000 },
           index_prefix: ENV['SITE_NAME'],
           merge_mappings: true,
           mappings: {
@@ -17,16 +17,16 @@ module SpreeSearchkick
           }
         ) unless base.respond_to?(:searchkick_index)
 
-        base.scope :search_import, lambda {
-          includes(
-            :option_types,
-            :variants_including_master,
-            taxons: :taxonomy,
-            master: :default_price,
-            product_properties: :property,
-            variants: :option_values
-          )
-        }
+        # base.scope :search_import, lambda {
+        #   includes(
+        #     :option_types,
+        #     :variants_including_master,
+        #     taxons: :taxonomy,
+        #     master: :default_price,
+        #     product_properties: :property,
+        #     variants: :option_values
+        #   )
+        # }
 
         base.skip_callback :commit, :after, :reindex, raise: false
         # base.after_save :reindex, if: -> { ::Searchkick.callbacks?(default: :async) }
@@ -44,7 +44,7 @@ module SpreeSearchkick
         def base.filter_fields
           fields = [:price, :brand, :in_stock, :conversions, :has_image, :total_on_hand, :purchasable, :taxon_ids]
           fields.concat(::Spree::Property.filterable_properties.map {|prop| prop.filter_name })
-          fields.concat(::Spree::OptionType.filterable_option_types.map {|ot| ot.filter_name })
+          # fields.concat(::Spree::OptionType.filterable_option_types.map {|ot| ot.filter_name })
 
           fields.compact.uniq
         end

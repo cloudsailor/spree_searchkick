@@ -8,7 +8,7 @@ module Spree
       end
 
       def retrieve_products(**args)
-        @products =  defined?(args) ? base_elasticsearch(args) : base_elasticsearch
+        @products =  defined?(args) ? base_elasticsearch(**args) : base_elasticsearch
       end
 
       def base_elasticsearch(**args)
