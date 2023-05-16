@@ -39,7 +39,7 @@ module SpreeSearchkick
         end
 
         def base.search_fields
-          [:name, :isins, :brand, :main_brand]
+          [:name, :isins, :brand, :main_brand, :barcode]
         end
 
         def base.filter_fields
@@ -180,6 +180,7 @@ module SpreeSearchkick
             on_sale: compare_at_price > 0 ? 1 : 0,
             description: description,
             main_brand: main_brand,
+            barcode: barcode,
             skus: all_variants.map { |v| v.sku }.uniq,
             vendor_ids: all_variants.map { |v| v.vendor_id }.uniq,
             active: available?,
@@ -284,6 +285,7 @@ module SpreeSearchkick
           on_sale: compare_at_price.present? && compare_at_price > 0 ? 1 : 0,
           vendor_ids: vendor_ids,
           skus: skus,
+          barcode: barcode,
           active: available? && presenter[:available],
           conversions: orders.complete.count,
           main_brand: main_brand,

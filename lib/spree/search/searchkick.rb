@@ -162,6 +162,13 @@ module Spree
             @properties[filter_field] = options[filter_field]
           end
         end
+
+        ::Spree::Property.filterable.each do |property|
+          if options.include?(property.filter_name)
+            @properties[property.filter_name] = options[property.filter_name]
+          end
+        end
+
         if @properties[:price].blank?
           @properties[:price] = { gt: 0 }
         end
