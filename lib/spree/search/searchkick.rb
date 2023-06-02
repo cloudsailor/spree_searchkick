@@ -26,7 +26,8 @@ module Spree
         includes = args.delete(:includes)
         if includes.nil?
           if defined?(::Spree::Representation)
-            includes = [:representation]
+            # includes = [:representation]
+            includes = []
           end
         end
 
@@ -64,7 +65,9 @@ module Spree
         if defined?(args)
           where_query = where_query.merge(args)
         end
-        where_query[:taxon_ids] = taxon.id if taxon
+        if taxon
+          where_query[:taxon_ids] = taxon.is_a?(::Spree::Taxon) ? taxon.id : taxon
+        end
 
         (::Spree::Product.try(:filter_fields) || []).each do |filter_field|
           if @properties.include?(filter_field)
@@ -101,16 +104,16 @@ module Spree
 
       def aggregation_classes
         [
-          Spree::Taxonomy, 
-          Spree::Property, 
-          Spree::OptionType
+          ::Spree::Taxonomy, 
+          ::Spree::Property, 
+          ::Spree::OptionType
         ]
       end
 
       def add_search_filters(query)
         return query unless search
         search.each do |name, scope_attribute|
-          query.merge!(Hash[name, scope_attribute])
+          query.merge!(::Hash[name, scope_attribute])
         end
         query
       end
@@ -122,12 +125,12 @@ module Spree
         @properties[:keywords] = options.delete(:keywords)
 
         @properties[:search] = options.delete(:search)
-        @properties[:taxon] = params[:taxon].blank? ? nil : Spree::Taxon.find(params.delete(:taxon))
+        @properties[:taxon] = params[:taxon].blank? ? nil : params.delete(:taxon)
 
         @properties[:sort_by] = options.delete(:sort_by) || 'default'
 
         per_page = params[:per_page].to_i
-        @properties[:per_page] = per_page > 0 ? per_page : Spree::Config[:products_per_page]
+        @properties[:per_page] = per_page > 0 ? per_page : ::Spree::Config[:products_per_page]
         @properties[:page] = if params[:page].respond_to?(:to_i)
                                params[:page].to_i <= 0 ? 1 : params[:page].to_i
                              else

@@ -3,13 +3,14 @@ module SpreeSearchkick
     module PropertyDecorator
       # class_variable_set :@@property_values, nil
       mattr_accessor :property_values
+      mattr_accessor :filterable_properties_v
 
       def self.prepended(base)
         base.scope :filterable, -> { where(filterable: true) }
 
         base.instance_eval do
           def filterable_properties
-            if ::Spree::Property.respond_to?(:fetch_all_by)
+            @filterable_properties_v ||= if ::Spree::Property.respond_to?(:fetch_all_by)
               ::Spree::Property.fetch_all_by(filterable: true)
             else
               ::Spree::Property.filterable
