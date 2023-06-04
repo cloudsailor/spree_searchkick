@@ -149,42 +149,47 @@ module SpreeSearchkick
       end
 
       def search_data_representable
+        begin
+          resp = ::Spree::Product.presenter_by_slug(slug)
+        rescue
+          resp = presenter
+        end
         taxons = {}
-        presenter[:taxons].each do |t_path|
+        resp[:taxons].each do |t_path|
           t_path.each do |taxon|
             unless taxons.has_key?(taxon[:id])
               taxons[taxon[:id]] = taxon
             end
           end
         end
-        properties = presenter[:properties]&.select {|prop| !prop[:value].blank? }
+        properties = resp[:properties]&.select {|prop| !prop[:value].blank? }
         if properties.nil?
           properties = []
         end
 
-        quantity = presenter[:total_on_hand]
+        quantity = resp[:total_on_hand]
         if quantity == Float::INFINITY
           quantity = 100
         end
 
         json = {
-          id: presenter[:id],
-          name: presenter[:name],
-          slug: presenter[:slug],
-          description: presenter[:description],
-          active: presenter[:available],
-          in_stock: presenter[:in_stock],
-          created_at: presenter[:created_at],
-          updated_at: presenter[:updated_at],
-          price: presenter[:price].blank? ? 0 : presenter[:price].to_f.round(2),
-          currency: presenter[:currency],
-          conversions: presenter[:conversions],
+          id: resp[:id],
+          name: resp[:name],
+          slug: resp[:slug],
+          description: resp[:description],
+          active: resp[:available],
+          in_stock: resp[:in_stock],
+          created_at: resp[:created_at],
+          updated_at: resp[:updated_at],
+          price: resp[:price].blank? ? 0 : resp[:price].to_f.round(2),
+          currency: resp[:currency],
+          conversions: resp[:conversions],
           taxon_ids: taxons.values.map {|t| t[:id] },
           taxon_names: taxons.values.map {|t| t[:name] },
-          skus: presenter[:variants].map {|v| v[:sku] },
+          skus: resp[:variants].map {|v| v[:sku] },
           total_on_hand: quantity,
-          has_image: presenter[:images].blank? ? false : true,
-          purchasable: presenter[:purchasable],
+          has_image: resp[:images].blank? ? false : true,
+          purchasable: resp[:purchasable],
           property_ids: properties.map {|prop| prop[:id] },
           property_names: properties.map {|prop| prop[:name] },
           properties: properties.map {|prop| { id: prop[:id], name: prop[:name], value: prop[:value] } }
@@ -194,8 +199,8 @@ module SpreeSearchkick
           json.merge!(Hash[prop[:name].downcase, prop[:value].downcase].symbolize_keys)
         end
 
-        if !json.has_key?(:brand) && presenter[:brand].present?
-          json[:brand] = presenter[:brand].downcase
+        if !json.has_key?(:brand) && resp[:brand].present?
+          json[:brand] = resp[:brand].downcase
         end
 
         json
