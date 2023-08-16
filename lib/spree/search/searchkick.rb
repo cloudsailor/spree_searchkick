@@ -88,6 +88,7 @@ module Spree
         order_params[:price] = :desc if @properties[:sort_by] == 'price-high-to-low'
         order_params[:price] = :asc if @properties[:sort_by] == 'price-low-to-high'
         order_params[:created_at] = :desc if @properties[:sort_by] == 'newest-first'
+        order_params[:_score] = :desc if @properties[:sort_by] == 'relevance'
         order_params
       end
 
