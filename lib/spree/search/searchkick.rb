@@ -1,11 +1,11 @@
 module Spree
   module Search
     class Searchkick < Spree::Core::Search::Base
-      # @enable_aggregations = false
-      #
-      # class << self
-      #   attr_accessor :enable_aggregations
-      # end
+      @enable_aggregations = false
+
+      class << self
+        attr_accessor :enable_aggregations
+      end
 
       def retrieve_products(**args)
         @products = defined?(args) ? base_elasticsearch(args) : base_elasticsearch
