@@ -50,10 +50,10 @@ module Spree
                            })
           # end
 
-          ::Spree::Product.search(keyword_query, **options, debug: true)
+          ::Spree::Product.search(keyword_query, **options)
         else
           options.merge!({ body: @properties[:body] })
-          ::Spree::Product.search(keyword_query, **options, debug: true)
+          ::Spree::Product.search(keyword_query, **options)
         end
       end
 
