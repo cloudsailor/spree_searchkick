@@ -1,11 +1,11 @@
 module Spree
   module Search
     class Searchkick < Spree::Core::Search::Base
-      @enable_aggregations = false
-
-      class << self
-        attr_accessor :enable_aggregations
-      end
+      # @enable_aggregations = false
+      #
+      # class << self
+      #   attr_accessor :enable_aggregations
+      # end
 
       def retrieve_products(**args)
         @products = defined?(args) ? base_elasticsearch(args) : base_elasticsearch
@@ -16,16 +16,17 @@ module Spree
         dft_includes = [
           # :tax_category,
           variants: [
-            { images: { attachment_attachment: :blob } }
+            :prices,
+          # :images
           ],
           master: [
-            :prices,
-            { images: { attachment_attachment: :blob } }
-          ]
+            # :prices,
+            :images
+          ],
         ]
         includes = args.delete(:includes)
         if includes.nil?
-          if defined?(::Spree::Representation)
+          if defined?(::Spree::ProductRepresentation)
             includes = [:representation]
           end
         end
@@ -35,6 +36,7 @@ module Spree
           per_page: per_page,
           includes: includes.nil? ? dft_includes : includes
         }
+
         if @properties[:body].blank?
           options.merge!({
                            fields: Spree::Product.search_fields,
@@ -51,10 +53,8 @@ module Spree
           ::Spree::Product.search(keyword_query, **options, debug: true)
         else
           options.merge!({ body: @properties[:body] })
-          ::Spree::Product.search(keyword_query, **options)
+          ::Spree::Product.search(keyword_query, **options, debug: true)
         end
-
-
       end
 
       def where_query(**args)
